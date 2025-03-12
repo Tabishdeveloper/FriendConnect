@@ -1,7 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { supabase } from './supabase';
+import { createClientSupabaseClient } from './clientAuth';
 import { Session, User as SupabaseUser } from '@supabase/supabase-js';
 
 // Define the User type
@@ -45,6 +45,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [supabase] = useState(() => createClientSupabaseClient());
 
   useEffect(() => {
     // Set up Supabase auth state listener
@@ -82,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [supabase]);
 
   // Authentication methods
   const login = async (email: string, password: string) => {

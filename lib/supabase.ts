@@ -1,4 +1,6 @@
-import { createClient } from '@supabase/supabase-js';
+'use client';
+
+import { createBrowserClient } from '@supabase/ssr';
 
 // Check if Supabase environment variables are defined
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -20,7 +22,7 @@ const isSupabaseConfigured = () => {
 let supabase: any;
 
 if (isSupabaseConfigured()) {
-  supabase = createClient(supabaseUrl as string, supabaseAnonKey as string);
+  supabase = createBrowserClient(supabaseUrl as string, supabaseAnonKey as string);
 } else {
   console.warn(
     'Supabase is not configured. Please add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to your environment variables.',
