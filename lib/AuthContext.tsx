@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { createClientSupabaseClient } from './clientAuth';
-import { Session, User as SupabaseUser } from '@supabase/supabase-js';
+import { Session, User as SupabaseUser, AuthError } from '@supabase/supabase-js';
 
 // Define the User type
 export interface User {
@@ -45,9 +45,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [supabase] = useState(() => createClientSupabaseClient());
-
+  const [supabase, setSupabase] = useState<any>(null);
+  
+  // Initialize Supabase client on the client side only
   useEffect(() => {
+    try {
+      const client = createClientSupabaseClient();
+      setSupabase(client);
+    } catch (err) {
+      console.error('Failed to initialize Supabase client:', err);
+    }
+  }, []);
+  
+  // Set up auth state listener after Supabase client is initialized
+  useEffect(() => {
+    if (!supabase) return;
+    
     // Set up Supabase auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, currentSession) => {
@@ -66,15 +79,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // Initialize user state
     const initializeUser = async () => {
-      const { data: { user: currentUser, session: currentSession } } = await supabase.auth.getUser();
-      setSession(currentSession);
-      
-      if (currentUser) {
-        const formattedUser = formatUser(currentUser);
-        setUser(formattedUser);
+      try {
+        const { data, error } = await supabase.auth.getUser();
+        if (error) throw error;
+        
+        const { data: sessionData } = await supabase.auth.getSession();
+        setSession(sessionData.session);
+        
+        if (data.user) {
+          const formattedUser = formatUser(data.user);
+          setUser(formattedUser);
+        }
+      } catch (err) {
+        console.error('Error getting user:', err);
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
     };
 
     initializeUser();
@@ -87,6 +107,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Authentication methods
   const login = async (email: string, password: string) => {
+    if (!supabase) throw new Error('Supabase client not initialized');
+    
     setError(null);
     setLoading(true);
     
@@ -97,15 +119,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       if (error) throw error;
-      setLoading(false);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during login');
-      setLoading(false);
+    } catch (err) {
+      const authError = err as AuthError;
+      setError(authError.message || 'An error occurred during login');
       throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
   const signup = async (email: string, password: string, displayName: string) => {
+    if (!supabase) throw new Error('Supabase client not initialized');
+    
     setError(null);
     setLoading(true);
     
@@ -121,15 +146,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       if (error) throw error;
-      setLoading(false);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during signup');
-      setLoading(false);
+    } catch (err) {
+      const authError = err as AuthError;
+      setError(authError.message || 'An error occurred during signup');
       throw err;
+    } finally {
+      setLoading(false);
     }
   };
 
   const loginWithGoogle = async () => {
+    if (!supabase) throw new Error('Supabase client not initialized');
+    
     setError(null);
     
     try {
@@ -141,20 +169,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       });
       
       if (error) throw error;
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during Google login');
+    } catch (err) {
+      const authError = err as AuthError;
+      setError(authError.message || 'An error occurred during Google login');
       throw err;
     }
   };
 
   const logout = async () => {
+    if (!supabase) throw new Error('Supabase client not initialized');
+    
     setError(null);
     
     try {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
-    } catch (err: any) {
-      setError(err.message || 'An error occurred during logout');
+    } catch (err) {
+      const authError = err as AuthError;
+      setError(authError.message || 'An error occurred during logout');
       throw err;
     }
   };

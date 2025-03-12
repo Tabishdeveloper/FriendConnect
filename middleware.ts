@@ -1,28 +1,30 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { cookies } from 'next/headers';
+import { config } from './lib/config';
 
 export async function middleware(req: NextRequest) {
   const res = NextResponse.next();
   
   // Create a Supabase client configured to use cookies
   const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    config.supabase.url,
+    config.supabase.anonKey,
     {
       cookies: {
-        get: (name) => {
+        get(name) {
           return req.cookies.get(name)?.value;
         },
-        set: (name, value, options) => {
+        set(name, value, options) {
+          // This is needed for production deployments
           res.cookies.set({
             name,
             value,
             ...options,
           });
         },
-        remove: (name, options) => {
+        remove(name, options) {
+          // This is needed for production deployments
           res.cookies.set({
             name,
             value: '',
