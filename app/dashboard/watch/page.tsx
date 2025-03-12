@@ -44,7 +44,7 @@ export default function WatchTogether() {
           const now = Date.now();
           if (now - lastUpdateTimeRef.current > 5000) {
             lastUpdateTimeRef.current = now;
-            mediaSyncService.updateCurrentTime(videoRef.current.currentTime).catch(console.error);
+            mediaSyncService.updateSessionState(videoRef.current.currentTime, isPlaying).catch(console.error);
           }
         }
       }
@@ -61,7 +61,7 @@ export default function WatchTogether() {
       
       // Sync play state with other users
       if (syncEnabled && sessionId && user) {
-        mediaSyncService.play().catch(console.error);
+        mediaSyncService.sendMediaAction('play', {}).catch(console.error);
       }
     };
     
@@ -70,7 +70,7 @@ export default function WatchTogether() {
       
       // Sync pause state with other users
       if (syncEnabled && sessionId && user) {
-        mediaSyncService.pause().catch(console.error);
+        mediaSyncService.sendMediaAction('pause', {}).catch(console.error);
       }
     };
     
@@ -100,37 +100,72 @@ export default function WatchTogether() {
   useEffect(() => {
     if (!user) return;
     
-    mediaSyncService.setOnPlay(() => {
-      if (videoRef.current && !isPlaying) {
+    mediaSyncService.setCallbacks({
+      onSessionUpdate: (session) => {
+        // Update UI based on session state
+        if (videoRef.current && syncEnabled) {
+          if (Math.abs(videoRef.current.currentTime - session.currentTime) > 2) {
+            setSyncEnabled(false); // Temporarily disable sync
+            videoRef.current.currentTime = session.currentTime;
+            setCurrentTime(session.currentTime);
+            setTimeout(() => setSyncEnabled(true), 1000);
+          }
+        }
+      },
+      onParticipantAction: (action) => {
+        if (!videoRef.current || !syncEnabled) return;
+        
         setSyncEnabled(false); // Temporarily disable sync to avoid loops
-        videoRef.current.play().then(() => {
-          setSyncEnabled(true);
-        }).catch(console.error);
-      }
-    });
-    
-    mediaSyncService.setOnPause(() => {
-      if (videoRef.current && isPlaying) {
-        setSyncEnabled(false); // Temporarily disable sync to avoid loops
-        videoRef.current.pause();
-        setSyncEnabled(true);
-      }
-    });
-    
-    mediaSyncService.setOnSeek((time) => {
-      if (videoRef.current) {
-        setSyncEnabled(false); // Temporarily disable sync to avoid loops
-        videoRef.current.currentTime = time;
-        setCurrentTime(time);
-        setSyncEnabled(true);
-      }
-    });
-    
-    mediaSyncService.setOnLoad((url, title) => {
-      setVideoUrl(url);
-      if (videoRef.current) {
-        videoRef.current.src = url;
-        videoRef.current.load();
+        
+        switch (action.type) {
+          case 'play':
+            if (!isPlaying) {
+              videoRef.current.play().catch(console.error);
+            }
+            break;
+          case 'pause':
+            if (isPlaying) {
+              videoRef.current.pause();
+            }
+            break;
+          case 'seek':
+            if (action.data && typeof action.data.time === 'number') {
+              videoRef.current.currentTime = action.data.time;
+              setCurrentTime(action.data.time);
+            }
+            break;
+          case 'skip':
+            if (action.data && typeof action.data.skipAmount === 'number') {
+              const newTime = Math.max(0, Math.min(
+                videoRef.current.currentTime + action.data.skipAmount,
+                videoRef.current.duration
+              ));
+              videoRef.current.currentTime = newTime;
+              setCurrentTime(newTime);
+            }
+            break;
+          case 'load':
+            if (action.data) {
+              setVideoUrl(action.data.mediaUrl);
+              videoRef.current.src = action.data.mediaUrl;
+              videoRef.current.load();
+            }
+            break;
+        }
+        
+        // Re-enable sync after a short delay
+        setTimeout(() => setSyncEnabled(true), 1000);
+      },
+      onParticipantJoined: (userId, sessionId) => {
+        // You could add a notification or UI update here
+        console.log(`User ${userId} joined session ${sessionId}`);
+      },
+      onParticipantLeft: (userId, sessionId) => {
+        // You could add a notification or UI update here
+        console.log(`User ${userId} left session ${sessionId}`);
+      },
+      onError: (error) => {
+        console.error('Media sync error:', error);
       }
     });
     
@@ -140,7 +175,7 @@ export default function WatchTogether() {
         mediaSyncService.leaveSession().catch(console.error);
       }
     };
-  }, [user, isPlaying, sessionId]);
+  }, [user, isPlaying, sessionId, syncEnabled]);
   
   const handleVideoSelect = async (url: string, title: string) => {
     setVideoUrl(url);
@@ -149,9 +184,10 @@ export default function WatchTogether() {
     // Create a new media session
     if (user && friendId) {
       try {
+        // Set user ID first
+        mediaSyncService.setUserId(user.uid);
+        
         const newSessionId = await mediaSyncService.createSession(
-          user.uid,
-          friendId,
           'video',
           url,
           title
@@ -181,7 +217,7 @@ export default function WatchTogether() {
       
       // Sync seek with other users
       if (syncEnabled && sessionId && user) {
-        mediaSyncService.seek(seekTime).catch(console.error);
+        mediaSyncService.sendMediaAction('seek', { time: seekTime }).catch(console.error);
       }
     }
   };
@@ -251,7 +287,7 @@ export default function WatchTogether() {
       
       // Sync skip with other users
       if (syncEnabled && sessionId && user) {
-        mediaSyncService.skip(seconds).catch(console.error);
+        mediaSyncService.sendMediaAction('skip', { skipAmount: seconds }).catch(console.error);
       }
     }
   };
