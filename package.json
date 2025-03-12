@@ -1,0 +1,40 @@
+{
+  "name": "friend-connect",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "next": "^14.1.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@supabase/supabase-js": "^2.39.3",
+    "@supabase/auth-helpers-nextjs": "^0.8.7",
+    "@supabase/auth-helpers-react": "^0.4.2",
+    "@supabase/auth-ui-react": "^0.4.7",
+    "@supabase/auth-ui-shared": "^0.1.8",
+    "socket.io": "^4.7.2",
+    "socket.io-client": "^4.7.2",
+    "simple-peer": "^9.11.1",
+    "tailwindcss": "^3.3.0",
+    "postcss": "^8.4.31",
+    "autoprefixer": "^10.4.16",
+    "zustand": "^4.4.7",
+    "axios": "^1.6.2",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/react": "^18.2.38",
+    "@types/react-dom": "^18.2.15",
+    "@types/simple-peer": "^9.11.8",
+    "@types/uuid": "^9.0.7",
+    "typescript": "^5.3.2",
+    "eslint": "^8.54.0",
+    "eslint-config-next": "^14.0.3"
+  }
+} 
