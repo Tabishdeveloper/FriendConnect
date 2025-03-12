@@ -4,8 +4,8 @@
   "outputDirectory": ".next",
   "installCommand": "npm install",
   "framework": "nextjs",
+  "regions": ["iad1"],
   "env": {
-    "NEXT_PUBLIC_SUPABASE_URL": "https://njiochyxydhitgjpnkyr.supabase.co",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5qaW9jaHl4eWRoaXRnanBua3lyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDE3MzExMzAsImV4cCI6MjA1NzMwNzEzMH0.n6kcwnQ4g7Mf6XiPw227f7pR0-jIbpNiAbn6Prcg-To"
+    "NEXT_TELEMETRY_DISABLED": "1"
   }
 } 
